@@ -1,0 +1,30 @@
+{
+  "metafields": [
+    {
+      "namespace": "product_specs",
+      "key": "chemical_name",
+      "value": "Isopropyl Alcohol"
+    },
+    {
+      "namespace": "product_specs",
+      "key": "iupac_name",
+      "value": "Propan-2-ol"
+    },
+    {
+      "namespace": "product_specs",
+      "key": "cas_number",
+      "value": "67-63-0"
+    },
+    {
+      "namespace": "product_specs",
+      "key": "purity_percentage",
+      "value": "99%"
+    },
+    {
+      "namespace": "amazon",
+      "key": "backend_keywords",
+      "value": "isopropanol 2-propanol ipa solvent electronics cleaner flux remover"
+    }
+  ]
+}
+

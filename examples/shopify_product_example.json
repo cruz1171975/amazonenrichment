@@ -1,0 +1,16 @@
+{
+  "product": {
+    "id": 1234567890,
+    "title": "Isopropyl Alcohol 99% Technical Grade",
+    "vendor": "Alliance Chemical",
+    "tags": "isopropyl alcohol, ipa, solvent, electronics cleaning",
+    "variants": [
+      {
+        "id": 111,
+        "sku": "AC-IPA-99-1G",
+        "weight": 8.5
+      }
+    ]
+  }
+}
+

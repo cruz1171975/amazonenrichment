@@ -1,0 +1,97 @@
+{
+  "applications": [
+    "Electronics cleaning",
+    "Flux removal",
+    "Surface preparation",
+    "General degreasing"
+  ],
+  "approved_marketing_claims": [
+    "Fast-evaporating solvent helps reduce drying time",
+    "Leaves no residue on most surfaces when used as directed",
+    "High-purity formula supports consistent results"
+  ],
+  "asin": null,
+  "brand": "Alliance Chemical",
+  "certifications": [],
+  "chemical_identity": {
+    "cas_number": "67-63-0",
+    "chemical_name": "Isopropyl Alcohol",
+    "iupac_name": "Propan-2-ol",
+    "other_names": [
+      "Isopropanol",
+      "2-Propanol",
+      "IPA"
+    ]
+  },
+  "compatible_materials": [
+    "Stainless steel",
+    "Glass",
+    "Most plastics (test first)"
+  ],
+  "incompatible_materials": [],
+  "keywords": {
+    "application": [
+      "electronics cleaner",
+      "flux remover",
+      "degreaser"
+    ],
+    "long_tail": [
+      "isopropyl alcohol for electronics",
+      "ipa solvent"
+    ],
+    "primary": [
+      "isopropyl alcohol",
+      "ipa",
+      "99% alcohol"
+    ],
+    "secondary": [
+      "isopropanol",
+      "2-propanol"
+    ]
+  },
+  "last_updated": "2024-01-15",
+  "packaging": {
+    "container_type": "HDPE jug",
+    "shipping_weight": "8.5 lbs",
+    "sizes_available": [
+      "1 Gallon",
+      "5 Gallon"
+    ],
+    "units_per_case": 4
+  },
+  "product_name": "Isopropyl Alcohol 99% Technical Grade",
+  "safety_summary": {
+    "ppe_required": [
+      "Safety glasses",
+      "Chemical-resistant gloves",
+      "Ventilation"
+    ],
+    "primary_hazards": [
+      "Flammable liquid and vapor",
+      "Causes serious eye irritation"
+    ],
+    "signal_word": "Danger"
+  },
+  "sds_link": null,
+  "sku": "AC-IPA-99-1G",
+  "specifications": {
+    "appearance": "Clear, colorless liquid",
+    "boiling_point": "82°C",
+    "concentration": null,
+    "flash_point": "12°C",
+    "grade": "Technical Grade",
+    "odor": "Characteristic alcohol odor",
+    "ph": null,
+    "purity": "99%",
+    "solubility": "Miscible with water",
+    "specific_gravity": "0.785"
+  },
+  "storage": {
+    "conditions": "Keep container tightly closed",
+    "shelf_life": "2 years from manufacture date",
+    "special_requirements": "Keep away from heat, sparks, and open flame",
+    "temperature": "Store at 59-86°F (15-30°C)"
+  },
+  "tds_link": null,
+  "updated_by": "compliance_team"
+}
