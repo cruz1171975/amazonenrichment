@@ -108,7 +108,7 @@ def _derive_chemical_name_from_title(title: str) -> str:
     if not t:
         return ""
     # Remove trailing % and any grade phrases
-    t = re.sub(r"\b\d{1,3}(?:\.\d+)?\s*%\b", "", t, flags=re.IGNORECASE)
+    t = re.sub(r"\d{1,3}(?:\.\d+)?\s*%", "", t, flags=re.IGNORECASE)
     for g in _KNOWN_GRADE_TERMS:
         t = re.sub(re.escape(g), "", t, flags=re.IGNORECASE)
     t = " ".join(t.split())
@@ -195,6 +195,15 @@ def build_facts_from_shopify(fetch: ShopifySkuFetchResult) -> ShopifyFactsBuildR
 
     sds = _clean(mfp.get("custom.safety_data_sheet"))
     industries = _as_str_list(mfp.get("filters.industry"))
+    shipping_group = _clean(mfp.get("shipperhq.shipperhq_shipping_group"))
+    dim_group = _clean(mfp.get("shipperhq.shipperhq_dim_group"))
+
+    mvv = {k: parse_metafield_value(v) for k, v in fetch.variant_metafields.items()}
+    dims = {
+        "length_in": _clean(mvv.get("global.LENGTH")),
+        "width_in": _clean(mvv.get("global.WIDTH")),
+        "height_in": _clean(mvv.get("global.HEIGHT")),
+    }
 
     # Optional Shopify descriptions as facts (will still be compliance-scanned later).
     raw_pd = _clean(mfp.get("product_details.product_description"))
@@ -204,7 +213,7 @@ def build_facts_from_shopify(fetch: ShopifySkuFetchResult) -> ShopifyFactsBuildR
 
     def extract_uses(text: str) -> list[str]:
         # Extracts phrases after "used in/used for" up to the next period.
-        m = re.search(r"(?i)\\bused\\s+(?:in|for)\\s+([^\\.]{5,200})\\.", text)
+        m = re.search(r"(?i)\bused\s+(?:in|for)\s+([^.]{5,200})(?:\.|$)", text)
         if not m:
             return []
         chunk = m.group(1)
@@ -267,6 +276,9 @@ def build_facts_from_shopify(fetch: ShopifySkuFetchResult) -> ShopifyFactsBuildR
             "sizes_available": sizes,
             "units_per_case": None,
             "shipping_weight": None,
+            "dimensions": {k: v for k, v in dims.items() if v},
+            "shipping_group": shipping_group or None,
+            "dim_group": dim_group or None,
         },
         "applications": [*industries, *uses],
         "certifications": [],

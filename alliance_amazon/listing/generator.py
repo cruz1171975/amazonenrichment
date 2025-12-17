@@ -167,6 +167,10 @@ def _build_bullets(facts: dict[str, Any], size: str) -> list[str]:
     molecular_weight = _clean(product_details.get("molecular_weight") if isinstance(product_details, dict) else "")
     melting_point = _clean(product_details.get("melting_point") if isinstance(product_details, dict) else "")
     container = _clean(_get(facts, "packaging", "container_type"))
+    dims = _get(facts, "packaging", "dimensions") if isinstance(_get(facts, "packaging", "dimensions"), dict) else {}
+    length_in = _clean(dims.get("length_in") if isinstance(dims, dict) else "")
+    width_in = _clean(dims.get("width_in") if isinstance(dims, dict) else "")
+    height_in = _clean(dims.get("height_in") if isinstance(dims, dict) else "")
     applications = _dedupe_keep_order(_get(facts, "applications") or [])
     marketing = _dedupe_keep_order(_get(facts, "approved_marketing_claims") or [])
     safety = _get(facts, "safety_summary") if isinstance(_get(facts, "safety_summary"), dict) else {}
@@ -197,14 +201,28 @@ def _build_bullets(facts: dict[str, Any], size: str) -> list[str]:
         b2 = "Applications: " + "; ".join(applications[:6])
 
     b3 = ""
+    sds_bullet_used = False
     if marketing:
         b3 = "Features: " + "; ".join(marketing[:4])
+    elif sds_link:
+        b3 = "Documentation: SDS available"
+        sds_bullet_used = True
 
     b4_bits: list[str] = []
     if size:
         b4_bits.append(f"Size: {size}")
     if container:
         b4_bits.append(f"Container: {container}")
+    if length_in or width_in or height_in:
+        dim_parts = []
+        if length_in:
+            dim_parts.append(f"L {length_in} in")
+        if width_in:
+            dim_parts.append(f"W {width_in} in")
+        if height_in:
+            dim_parts.append(f"H {height_in} in")
+        if dim_parts:
+            b4_bits.append("Dimensions: " + " × ".join(dim_parts))
     b4 = _join_nonempty(b4_bits, sep=" • ")
 
     b5_bits: list[str] = []
@@ -227,11 +245,21 @@ def _build_bullets(facts: dict[str, Any], size: str) -> list[str]:
         b5_bits.append("Hazards: " + "; ".join(hazards[:4]))
     if ppe:
         b5_bits.append("PPE: " + "; ".join(ppe[:4]))
-    if sds_link:
+    if sds_link and not sds_bullet_used:
         b5_bits.append("SDS available")
     b5 = _join_nonempty(b5_bits, sep=" • ")
 
     bullets = [b for b in [b1, b2, b3, b4, b5] if b]
+    # Ensure 5 bullets when possible using purely factual fallbacks.
+    if len(bullets) < 5:
+        sku = _clean(facts.get("sku"))
+        brand = _clean(facts.get("brand"))
+        for extra in [f"Brand: {brand}" if brand else "", f"SKU: {sku}" if sku else ""]:
+            if extra and extra not in bullets:
+                bullets.append(extra)
+            if len(bullets) >= 5:
+                break
+    bullets = bullets[:5]
     return [_truncate_chars(b, BULLET_CHAR_LIMIT) for b in bullets]
 
 

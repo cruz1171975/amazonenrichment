@@ -14,7 +14,10 @@
         "items": [
           "Industrial",
           "Environmental",
-          "Wastewater"
+          "Wastewater",
+          "water treatment",
+          "metal pickling",
+          "PCB manufacturing"
         ],
         "type": "applications"
       },
@@ -25,17 +28,18 @@
     ],
     "version": 1
   },
-  "a_plus_markdown": "# A+ Draft: Ferric Chloride 40%\nFerric Chloride 40% • CAS 7705-08-0\n\n## Common Applications\nIndustrial, Environmental, Wastewater.\n\n## Safety & Handling\nAlways follow the SDS and label directions.\n\n## Images Needed (Suggestions)\n- Front label / hero image\n- Spec callouts (purity/concentration/CAS if applicable)\n- Application collage (uses without regulated efficacy claims)\n- Safety callout (PPE / storage iconography)",
+  "a_plus_markdown": "# A+ Draft: Ferric Chloride 40%\nFerric Chloride • CAS 7705-08-0\n\n## Common Applications\nIndustrial, Environmental, Wastewater, water treatment, metal pickling, PCB manufacturing.\n\n## Safety & Handling\nAlways follow the SDS and label directions.\n\n## Images Needed (Suggestions)\n- Front label / hero image\n- Spec callouts (purity/concentration/CAS if applicable)\n- Application collage (uses without regulated efficacy claims)\n- Safety callout (PPE / storage iconography)",
   "backend_search_terms": "40-percent 40-percent-solution 40-percent-w-w aqueous-solution bulk-packaging cas-7705-08-0 chemical-industry chemical-milling chemical-raw-material chemical-synthesis coagulant drum-packaging electronics electronics-manufacturing etchant fabrication",
   "bullets": [
-    "Ferric Chloride 40% • 40% • CAS 7705-08-0 • Formula: FeCl3 • Molecular weight: 162.21 • Appearance: Dark brown liquid, metallic luster, fuming",
-    "Applications: Industrial; Environmental; Wastewater",
-    "Size: 1 Gallon",
+    "Ferric Chloride • 40% • CAS 7705-08-0 • Formula: FeCl3 • Molecular weight: 162.21 • Appearance: Dark brown liquid, metallic luster, fuming",
+    "Applications: Industrial; Environmental; Wastewater; water treatment; metal pickling; PCB manufacturing",
+    "Documentation: SDS available",
+    "Size: 1 Gallon • Dimensions: L 6.2 in × W 6.2 in × H 11.6 in",
     "Specs: Boiling point: 280; Melting point: 37; Specific gravity: 1.43; Solubility: Highly water soluble, compatible with alcohols • SDS available"
   ],
   "compliance_findings": [],
   "compliance_status": "pass",
-  "description": "Ferric Chloride 40%\n\nFerric Chloride 40% • CAS 7705-08-0\n\nStrength: 40% • Size: 1 Gallon\n\nSpecifications:\n- Formula: FeCl3\n- Molecular weight: 162.21\n- Appearance: Dark brown liquid, metallic luster, fuming\n- Solubility: Highly water soluble, compatible with alcohols\n- Specific gravity: 1.43\n- Boiling point: 280\n- Melting point: 37\n\nCommon applications: Industrial, Environmental, Wastewater.\n\nDocumentation: SDS available.\n\nSafety: Use appropriate PPE and follow the SDS and label directions.",
+  "description": "Ferric Chloride 40%\n\nFerric Chloride • CAS 7705-08-0\n\nStrength: 40% • Size: 1 Gallon\n\nSpecifications:\n- Formula: FeCl3\n- Molecular weight: 162.21\n- Appearance: Dark brown liquid, metallic luster, fuming\n- Solubility: Highly water soluble, compatible with alcohols\n- Specific gravity: 1.43\n- Boiling point: 280\n- Melting point: 37\n\nCommon applications: Industrial, Environmental, Wastewater, water treatment, metal pickling, PCB manufacturing.\n\nDocumentation: SDS available.\n\nSafety: Use appropriate PPE and follow the SDS and label directions.",
   "metadata": {
     "asin": null,
     "generator": "alliance_amazon",
