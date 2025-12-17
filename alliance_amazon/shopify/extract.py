@@ -97,7 +97,7 @@ def _grade_allowed(product_name: str, grade: str) -> str:
 
 def _extract_percent_from_title(title: str) -> str:
     # Matches "40%" or "40 %"
-    m = re.search(r"\b(\d{1,3}(?:\.\d+)?)\s*%\b", title)
+    m = re.search(r"(\d{1,3}(?:\.\d+)?)\s*%", title)
     if not m:
         return ""
     return f"{m.group(1)}%"
@@ -198,10 +198,28 @@ def build_facts_from_shopify(fetch: ShopifySkuFetchResult) -> ShopifyFactsBuildR
 
     # Optional Shopify descriptions as facts (will still be compliance-scanned later).
     raw_pd = _clean(mfp.get("product_details.product_description"))
-    raw_pd_html = _clean(mfp.get("product_details.product_description_html"))
     raw_seo_desc = _clean(mfp.get("product_details.seo_description"))
     safe_pd, removed_pd = _redact_hard_terms(raw_pd, product_name_for_grade=raw_title)
     safe_seo_desc, removed_seo_desc = _redact_hard_terms(raw_seo_desc, product_name_for_grade=raw_title)
+
+    def extract_uses(text: str) -> list[str]:
+        # Extracts phrases after "used in/used for" up to the next period.
+        m = re.search(r"(?i)\\bused\\s+(?:in|for)\\s+([^\\.]{5,200})\\.", text)
+        if not m:
+            return []
+        chunk = m.group(1)
+        chunk = chunk.replace(" and ", ", ")
+        parts = [p.strip(" .;:-") for p in chunk.split(",")]
+        out = []
+        for p in parts:
+            p = _clean(p)
+            if p:
+                out.append(p)
+        return out
+
+    uses = []
+    uses.extend(extract_uses(safe_seo_desc))
+    uses.extend(extract_uses(safe_pd))
 
     sizes = _extract_sizes(product)
     size = _option2_value(variant)
@@ -250,7 +268,7 @@ def build_facts_from_shopify(fetch: ShopifySkuFetchResult) -> ShopifyFactsBuildR
             "units_per_case": None,
             "shipping_weight": None,
         },
-        "applications": industries,
+        "applications": [*industries, *uses],
         "certifications": [],
         "compatible_materials": [],
         "incompatible_materials": [],
@@ -265,7 +283,7 @@ def build_facts_from_shopify(fetch: ShopifySkuFetchResult) -> ShopifyFactsBuildR
             "primary_hazards": [],
             "ppe_required": [],
         },
-        "approved_marketing_claims": [s for s in [safe_seo_desc, safe_pd] if s][:4],
+        "approved_marketing_claims": [],
         "keywords": {
             "primary": [],
             "secondary": safe_keywords[:25],

@@ -132,7 +132,7 @@ def scan_text(text: str, *, config: ScanConfig, field: str = "text") -> list[Fin
     allowed_grades = _allowed_grade_terms(config.allow_grade_terms_from_product_name)
     if not allowed_grades:
         for g in _GRADE_TERMS:
-            rxg = re.compile(r"\b" + re.escape(g) + r"\b", re.IGNORECASE)
+            rxg = _term_to_regex(g)
             mg = rxg.search(text)
             if mg:
                 findings.append(
@@ -147,7 +147,7 @@ def scan_text(text: str, *, config: ScanConfig, field: str = "text") -> list[Fin
                 break
     else:
         for g in _GRADE_TERMS:
-            rxg = re.compile(r"\b" + re.escape(g) + r"\b", re.IGNORECASE)
+            rxg = _term_to_regex(g)
             mg = rxg.search(text)
             if mg and g not in allowed_grades:
                 findings.append(
