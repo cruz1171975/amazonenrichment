@@ -611,7 +611,7 @@ Bullet 5: PRACTICAL INFO - Packaging, storage, usage tips
 **Product: Isopropyl Alcohol 99%**
 
 ```
-• LABORATORY GRADE PURITY: 99%+ isopropyl alcohol (IPA) meets stringent quality standards for consistent performance in precision cleaning and solvent applications
+• PURITY (GRADE ONLY IF VERIFIED): 99%+ isopropyl alcohol (IPA) for precision cleaning and solvent applications. **Only include any grade term if the exact grade appears in the Shopify product title.**
 
 • ELECTRONICS & ELECTRICAL CLEANING: Ideal for removing flux residue, cleaning circuit boards, connectors, and contacts; fast evaporation leaves no residue
 
@@ -907,7 +907,7 @@ Step 7: POST-APPLY
 ```csv
 sku,field,old_value,new_value,approved_by,approved_at,notes
 AC-IPA-99-1GAL,item_name,"Old Title Here","Alliance Chemical Isopropyl Alcohol 99% - 1 Gallon - Laboratory Grade",jsmith,2024-01-15T14:30:00Z,Approved after compliance review
-AC-IPA-99-1GAL,bullet_point_1,"Old bullet","LABORATORY GRADE PURITY: 99%+ isopropyl alcohol...",jsmith,2024-01-15T14:30:00Z,
+AC-IPA-99-1GAL,bullet_point_1,"Old bullet","PURITY (GRADE ONLY IF VERIFIED): 99%+ isopropyl alcohol... (Only include grade if it appears in the Shopify title)",jsmith,2024-01-15T14:30:00Z,
 ```
 
 ### Emergency Rollback Process

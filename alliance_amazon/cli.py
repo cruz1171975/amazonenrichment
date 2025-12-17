@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .env import load_env_files
 from .compliance.scanner import ScanConfig, scan_listing_fields, scan_text
 from .facts import (
     FactsValidationError,
@@ -19,6 +20,11 @@ from .keywords import filter_keywords, suggest_keywords
 from .flatfile.generate import FlatFileOptions, generate_flat_file_rows, write_flat_file
 from .flatfile.template import AmazonTemplateSheet
 from .listing.generator import GenerationOptions, generate_listing
+from .shopify.client import ShopifyClient
+from .shopify.fetch import fetch_by_sku
+from .shopify.extract import build_facts_from_shopify
+from .amazon.patch import PatchBuildOptions, build_listings_item_patch
+from .amazon.sp_api import SpApiClient
 from .utils import json_dumps, load_json, write_text_atomic
 
 
@@ -341,6 +347,116 @@ def _cmd_flatfile_generate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_shopify_fetch(args: argparse.Namespace) -> int:
+    client = ShopifyClient.from_env()
+    res = fetch_by_sku(client=client, sku=args.sku)
+    _write_output(args.out, args.force, json_dumps(res.to_dict()))
+    return 0
+
+
+def _cmd_listing_from_shopify(args: argparse.Namespace) -> int:
+    client = ShopifyClient.from_env()
+    fetched = fetch_by_sku(client=client, sku=args.sku)
+    built = build_facts_from_shopify(fetched)
+    # Generate base listing from structured Shopify facts.
+    options = GenerationOptions(
+        size=built.report.get("size_from_option2") or args.size,
+        html_description=False,
+        include_debug=args.include_debug,
+    )
+    listing = generate_listing(built.facts, options=options)
+    listing.setdefault("metadata", {})
+    listing["metadata"]["source"] = "shopify"
+    listing["metadata"]["shopify_shop_domain"] = client.shop_domain
+    listing["metadata"]["shopify_sku"] = args.sku
+    listing["metadata"]["shopify_title_raw"] = built.report.get("shopify_raw_title")
+    listing["metadata"]["shopify_title_sanitized"] = built.report.get("shopify_safe_title")
+    listing["shopify_import_report"] = built.report
+
+    if args.llm_provider:
+        llm_client = make_llm_client(args.llm_provider)
+        llm_result = generate_listing_with_llm(
+            facts=built.facts,
+            base_listing={
+                "title": listing.get("title", ""),
+                "bullets": listing.get("bullets", []),
+                "description": listing.get("description", ""),
+                "backend_search_terms": listing.get("backend_search_terms", ""),
+                "a_plus_markdown": listing.get("a_plus_markdown", ""),
+                "a_plus": listing.get("a_plus", {}),
+            },
+            client=llm_client,
+            model=args.llm_model,
+            max_attempts=args.llm_max_attempts,
+        )
+        listing["title"] = llm_result.listing.get("title", listing.get("title", ""))
+        listing["bullets"] = llm_result.listing.get("bullets", listing.get("bullets", []))
+        listing["description"] = llm_result.listing.get("description", listing.get("description", ""))
+        listing["backend_search_terms"] = llm_result.listing.get(
+            "backend_search_terms", listing.get("backend_search_terms", "")
+        )
+        if "a_plus_markdown" in llm_result.listing:
+            listing["a_plus_markdown"] = llm_result.listing["a_plus_markdown"]
+        if "a_plus" in llm_result.listing:
+            listing["a_plus"] = llm_result.listing["a_plus"]
+        listing["compliance_findings"] = llm_result.compliance_findings
+        listing["compliance_status"] = llm_result.compliance_status
+        listing["metadata"]["llm_provider"] = args.llm_provider
+        listing["metadata"]["llm_model"] = args.llm_model
+        listing["metadata"]["llm_used_fallback"] = llm_result.used_fallback
+
+    _write_output(args.out, args.force, json_dumps(listing))
+    return 0
+
+
+def _cmd_amazon_build_patch(args: argparse.Namespace) -> int:
+    listing = load_json(args.listing)
+    body = build_listings_item_patch(
+        listing=listing,
+        options=PatchBuildOptions(
+            marketplace_id=args.marketplace_id,
+            language_tag="en_US",
+            product_type=args.product_type,
+        ),
+    )
+    _write_output(args.out, args.force, json_dumps(body))
+    return 0
+
+
+def _cmd_amazon_update(args: argparse.Namespace) -> int:
+    listing = load_json(args.listing)
+    status = str(listing.get("compliance_status") or "").strip().lower()
+    if status != "pass" and not args.allow_noncompliant:
+        raise SystemExit(
+            "Refusing to publish: listing compliance_status != 'pass' (use --allow-noncompliant to override)"
+        )
+
+    body = build_listings_item_patch(
+        listing=listing,
+        options=PatchBuildOptions(
+            marketplace_id=args.marketplace_id,
+            language_tag="en_US",
+            product_type=args.product_type,
+        ),
+    )
+
+    if args.dry_run or not args.publish:
+        _write_output(args.out, args.force, json_dumps({"sku": args.sku, "patch_body": body}))
+        return 0
+
+    if not args.i_understand:
+        raise SystemExit("Refusing to publish without --publish --i-understand (use --dry-run to preview)")
+
+    client = SpApiClient.from_env()
+    resp = client.patch_listings_item(
+        sku=args.sku,
+        marketplace_ids=[args.marketplace_id],
+        patch_body=body,
+    )
+    _write_output(args.out, args.force, json_dumps(resp))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="alliance-amazon",
@@ -494,10 +610,83 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common_io_args(ff_gen)
     ff_gen.set_defaults(func=_cmd_flatfile_generate)
 
+    shopify = sub.add_parser("shopify", help="Shopify fetch helpers (requires network + SHOPIFY_ACCESS_TOKEN)")
+    sh_sub = shopify.add_subparsers(dest="sh_cmd", required=True)
+
+    sh_fetch = sh_sub.add_parser("fetch", help="Fetch Shopify product+metafields by variant SKU (GraphQL)")
+    sh_fetch.add_argument("--sku", type=str, required=True)
+    _add_common_io_args(sh_fetch)
+    sh_fetch.set_defaults(func=_cmd_shopify_fetch)
+
+    list_from_shopify = list_sub.add_parser(
+        "from-shopify", help="Generate a listing draft from Shopify data by SKU"
+    )
+    list_from_shopify.add_argument("--sku", type=str, required=True)
+    list_from_shopify.add_argument(
+        "--size", type=str, default=None, help="Override size (otherwise uses Shopify option2 value)"
+    )
+    list_from_shopify.add_argument(
+        "--include-debug",
+        action="store_true",
+        help="Include debug payload (facts + validation issues) in listing JSON.",
+    )
+    list_from_shopify.add_argument(
+        "--llm-provider",
+        type=str,
+        default=None,
+        help="Optional LLM provider for copy rewrite (e.g., 'gemini').",
+    )
+    list_from_shopify.add_argument(
+        "--llm-model",
+        type=str,
+        default="gemini-3-flash-preview",
+        help="LLM model name (default: gemini-3-flash-preview).",
+    )
+    list_from_shopify.add_argument(
+        "--llm-max-attempts",
+        type=int,
+        default=2,
+        help="Max rewrite attempts before falling back to base copy.",
+    )
+    _add_common_io_args(list_from_shopify)
+    list_from_shopify.set_defaults(func=_cmd_listing_from_shopify)
+
+    amazon = sub.add_parser("amazon", help="Amazon SP-API helpers (dry-run by default)")
+    am_sub = amazon.add_subparsers(dest="am_cmd", required=True)
+
+    am_build = am_sub.add_parser("build-patch", help="Build a Listings Items PATCH body from a listing JSON")
+    am_build.add_argument("--listing", type=Path, required=True, help="Listing JSON (from listing generate)")
+    am_build.add_argument("--marketplace-id", type=str, default="ATVPDKIKX0DER")
+    am_build.add_argument("--product-type", type=str, default=None)
+    _add_common_io_args(am_build)
+    am_build.set_defaults(func=_cmd_amazon_build_patch)
+
+    am_update = am_sub.add_parser("update", help="Publish listing updates via SP-API (use --dry-run first)")
+    am_update.add_argument("--sku", type=str, required=True, help="Seller SKU (must match Shopify variant SKU)")
+    am_update.add_argument("--listing", type=Path, required=True, help="Listing JSON to publish")
+    am_update.add_argument("--marketplace-id", type=str, default="ATVPDKIKX0DER")
+    am_update.add_argument("--product-type", type=str, default=None)
+    am_update.add_argument("--dry-run", action="store_true", help="Build patch only (no network)")
+    am_update.add_argument("--publish", action="store_true", help="Actually call SP-API PATCH")
+    am_update.add_argument(
+        "--i-understand",
+        action="store_true",
+        help="Required with --publish to confirm you intend to modify live listings.",
+    )
+    am_update.add_argument(
+        "--allow-noncompliant",
+        action="store_true",
+        help="Allow publishing even if listing.compliance_status != pass.",
+    )
+    _add_common_io_args(am_update)
+    am_update.set_defaults(func=_cmd_amazon_update)
+
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Allow local developer env files without requiring users to export variables manually.
+    load_env_files()
     parser = build_parser()
     args = parser.parse_args(argv)
     return int(args.func(args))

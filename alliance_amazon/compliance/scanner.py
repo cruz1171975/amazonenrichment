@@ -9,6 +9,7 @@ from .blocklist import BlockedTerm, iter_blocked_terms
 
 _GRADE_TERMS = [
     "laboratory grade",
+    "lab grade",
     "technical grade",
     "food grade",
     "acs grade",
@@ -27,7 +28,8 @@ def _term_to_regex(term: str) -> re.Pattern[str]:
         return re.compile(r"$^")
 
     escaped = re.escape(t)
-    escaped = escaped.replace(r"\ ", r"\s+")
+    # Treat spaces as space-or-hyphen runs to catch variants like "technical-grade".
+    escaped = escaped.replace(r"\ ", r"[-\s]+")
     escaped = escaped.replace(r"\-", r"[-\s]*")
 
     starts_alnum = t[:1].isalnum()

@@ -158,6 +158,14 @@ def _build_bullets(facts: dict[str, Any], size: str) -> list[str]:
     purity = _clean(_get(facts, "specifications", "purity"))
     concentration = _clean(_get(facts, "specifications", "concentration"))
     appearance = _clean(_get(facts, "specifications", "appearance"))
+    flash_point = _clean(_get(facts, "specifications", "flash_point"))
+    boiling_point = _clean(_get(facts, "specifications", "boiling_point"))
+    specific_gravity = _clean(_get(facts, "specifications", "specific_gravity"))
+    solubility = _clean(_get(facts, "specifications", "solubility"))
+    product_details = _get(facts, "product_details") if isinstance(_get(facts, "product_details"), dict) else {}
+    formula = _clean(product_details.get("formula") if isinstance(product_details, dict) else "")
+    molecular_weight = _clean(product_details.get("molecular_weight") if isinstance(product_details, dict) else "")
+    melting_point = _clean(product_details.get("melting_point") if isinstance(product_details, dict) else "")
     container = _clean(_get(facts, "packaging", "container_type"))
     applications = _dedupe_keep_order(_get(facts, "applications") or [])
     marketing = _dedupe_keep_order(_get(facts, "approved_marketing_claims") or [])
@@ -165,6 +173,7 @@ def _build_bullets(facts: dict[str, Any], size: str) -> list[str]:
     signal_word = _clean(safety.get("signal_word") if isinstance(safety, dict) else "")
     hazards = _dedupe_keep_order(safety.get("primary_hazards") if isinstance(safety, dict) else [])
     ppe = _dedupe_keep_order(safety.get("ppe_required") if isinstance(safety, dict) else [])
+    sds_link = _clean(facts.get("sds_link"))
 
     bullet1_bits: list[str] = []
     if chemical_name:
@@ -175,6 +184,10 @@ def _build_bullets(facts: dict[str, Any], size: str) -> list[str]:
         bullet1_bits.append(concentration)
     if cas:
         bullet1_bits.append(_format_cas(cas))
+    if formula:
+        bullet1_bits.append(f"Formula: {formula}")
+    if molecular_weight:
+        bullet1_bits.append(f"Molecular weight: {molecular_weight}")
     if appearance:
         bullet1_bits.append(f"Appearance: {appearance}")
     b1 = _join_nonempty(bullet1_bits, sep=" • ")
@@ -197,10 +210,25 @@ def _build_bullets(facts: dict[str, Any], size: str) -> list[str]:
     b5_bits: list[str] = []
     if signal_word:
         b5_bits.append(f"Safety: {signal_word}")
+    spec_bits: list[str] = []
+    if flash_point:
+        spec_bits.append(f"Flash point: {flash_point}")
+    if boiling_point:
+        spec_bits.append(f"Boiling point: {boiling_point}")
+    if melting_point:
+        spec_bits.append(f"Melting point: {melting_point}")
+    if specific_gravity:
+        spec_bits.append(f"Specific gravity: {specific_gravity}")
+    if solubility:
+        spec_bits.append(f"Solubility: {solubility}")
+    if spec_bits:
+        b5_bits.append("Specs: " + "; ".join(spec_bits[:5]))
     if hazards:
         b5_bits.append("Hazards: " + "; ".join(hazards[:4]))
     if ppe:
         b5_bits.append("PPE: " + "; ".join(ppe[:4]))
+    if sds_link:
+        b5_bits.append("SDS available")
     b5 = _join_nonempty(b5_bits, sep=" • ")
 
     bullets = [b for b in [b1, b2, b3, b4, b5] if b]
@@ -215,6 +243,15 @@ def _build_description(facts: dict[str, Any], size: str, *, html: bool) -> str:
     purity = _clean(specs.get("purity") if isinstance(specs, dict) else "")
     concentration = _clean(specs.get("concentration") if isinstance(specs, dict) else "")
     grade = _safe_grade(facts)
+    appearance = _clean(specs.get("appearance") if isinstance(specs, dict) else "")
+    flash_point = _clean(specs.get("flash_point") if isinstance(specs, dict) else "")
+    boiling_point = _clean(specs.get("boiling_point") if isinstance(specs, dict) else "")
+    specific_gravity = _clean(specs.get("specific_gravity") if isinstance(specs, dict) else "")
+    solubility = _clean(specs.get("solubility") if isinstance(specs, dict) else "")
+    product_details = _get(facts, "product_details") if isinstance(_get(facts, "product_details"), dict) else {}
+    formula = _clean(product_details.get("formula") if isinstance(product_details, dict) else "")
+    molecular_weight = _clean(product_details.get("molecular_weight") if isinstance(product_details, dict) else "")
+    melting_point = _clean(product_details.get("melting_point") if isinstance(product_details, dict) else "")
     applications = _dedupe_keep_order(_get(facts, "applications") or [])
     storage = _get(facts, "storage") if isinstance(_get(facts, "storage"), dict) else {}
     conditions = _clean(storage.get("conditions") if isinstance(storage, dict) else "")
@@ -222,48 +259,102 @@ def _build_description(facts: dict[str, Any], size: str, *, html: bool) -> str:
     special = _clean(storage.get("special_requirements") if isinstance(storage, dict) else "")
     safety = _get(facts, "safety_summary") if isinstance(_get(facts, "safety_summary"), dict) else {}
     ppe = _dedupe_keep_order(safety.get("ppe_required") if isinstance(safety, dict) else [])
+    sds_link = _clean(facts.get("sds_link"))
 
     name_line = product_name or chemical_name or "Chemical product"
-    spec_line = _join_nonempty(
-        [purity or concentration, grade, _format_cas(cas) if cas else ""], sep=" • "
+    identity_line = _join_nonempty(
+        [chemical_name, _format_cas(cas) if cas else ""], sep=" • "
     )
+    grade_line = grade
+    strength_line = purity or concentration
+
+    spec_rows: list[str] = []
+    if formula:
+        spec_rows.append(f"Formula: {formula}")
+    if molecular_weight:
+        spec_rows.append(f"Molecular weight: {molecular_weight}")
+    if appearance:
+        spec_rows.append(f"Appearance: {appearance}")
+    if solubility:
+        spec_rows.append(f"Solubility: {solubility}")
+    if specific_gravity:
+        spec_rows.append(f"Specific gravity: {specific_gravity}")
+    if flash_point:
+        spec_rows.append(f"Flash point: {flash_point}")
+    if boiling_point:
+        spec_rows.append(f"Boiling point: {boiling_point}")
+    if melting_point:
+        spec_rows.append(f"Melting point: {melting_point}")
 
     apps_line = ""
     if applications:
-        apps_line = "Common applications include: " + ", ".join(applications[:8]) + "."
+        apps_line = "Common applications: " + ", ".join(applications[:10]) + "."
 
     storage_lines = [x for x in [conditions, temp, special] if x]
-    storage_line = ""
-    if storage_lines:
-        storage_line = "Storage: " + " ".join(storage_lines)
+    storage_line = "Storage: " + " ".join(storage_lines) if storage_lines else ""
 
-    ppe_line = ""
-    if ppe:
-        ppe_line = "Safety: Use appropriate PPE such as " + ", ".join(ppe[:6]) + ". Always follow the SDS."
-    else:
-        ppe_line = "Safety: Always follow the SDS and use appropriate PPE."
+    sds_line = "Documentation: SDS available." if sds_link else ""
+    ppe_line = (
+        "Safety: Use appropriate PPE and follow the SDS and label directions."
+        if not ppe
+        else "Safety: Use appropriate PPE such as "
+        + ", ".join(ppe[:8])
+        + ", and follow the SDS and label directions."
+    )
 
     if html:
-        parts = []
-        parts.append(f"<p><b>{name_line}</b></p>")
-        if spec_line:
-            parts.append(f"<p>{spec_line}</p>")
+        parts = [f"<p><b>{name_line}</b></p>"]
+        if identity_line:
+            parts.append(f"<p>{identity_line}</p>")
+        if strength_line or grade_line or size:
+            parts.append(
+                "<p>"
+                + _join_nonempty(
+                    [
+                        f"Strength: {strength_line}" if strength_line else "",
+                        f"Grade: {grade_line}" if grade_line else "",
+                        f"Size: {size}" if size else "",
+                    ],
+                    sep=" • ",
+                )
+                + "</p>"
+            )
+        if spec_rows:
+            parts.append("<p><b>Specifications</b></p>")
+            parts.append("<ul>" + "".join([f"<li>{r}</li>" for r in spec_rows[:10]]) + "</ul>")
         if apps_line:
             parts.append(f"<p>{apps_line}</p>")
         if storage_line:
             parts.append(f"<p>{storage_line}</p>")
+        if sds_line:
+            parts.append(f"<p>{sds_line}</p>")
         parts.append(f"<p>{ppe_line}</p>")
-        desc = "\n".join(parts)
+        desc = "\n".join([p for p in parts if p and p != "<p></p>"])
     else:
-        parts = [name_line]
-        if spec_line:
-            parts.append(spec_line)
+        parts: list[str] = []
+        parts.append(name_line)
+        if identity_line:
+            parts.append(identity_line)
+        overview_bits = _join_nonempty(
+            [
+                f"Strength: {strength_line}" if strength_line else "",
+                f"Grade: {grade_line}" if grade_line else "",
+                f"Size: {size}" if size else "",
+            ],
+            sep=" • ",
+        )
+        if overview_bits:
+            parts.append(overview_bits)
+        if spec_rows:
+            parts.append("Specifications:\n- " + "\n- ".join(spec_rows[:10]))
         if apps_line:
             parts.append(apps_line)
         if storage_line:
             parts.append(storage_line)
+        if sds_line:
+            parts.append(sds_line)
         parts.append(ppe_line)
-        desc = "\n\n".join(parts)
+        desc = "\n\n".join([p for p in parts if p])
 
     return _truncate_chars(desc, DESCRIPTION_CHAR_LIMIT)
 

@@ -48,15 +48,31 @@ def _normalize_listing_payload(payload: dict[str, Any]) -> dict[str, Any]:
     for b in bullets_in[:5]:
         bullets.append(_truncate_chars(_clean(b), BULLET_CHAR_LIMIT))
     description = _truncate_chars(_clean(payload.get("description")), DESCRIPTION_CHAR_LIMIT)
-    backend = _truncate_utf8_bytes_space_separated(
-        _clean(payload.get("backend_search_terms")), BACKEND_SEARCH_TERMS_BYTE_LIMIT
-    )
+    backend_keywords = payload.get("backend_keywords")
+    if isinstance(backend_keywords, list):
+        # tokens/short phrases
+        toks = [_clean(x) for x in backend_keywords if _clean(x)]
+    else:
+        # Back-compat: accept backend_search_terms string
+        toks = _clean(payload.get("backend_search_terms")).split()
+    # Dedupe keeping order (case-insensitive)
+    seen = set()
+    deduped = []
+    for t in toks:
+        key = t.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(t)
+    backend = _truncate_utf8_bytes_space_separated(" ".join(deduped), BACKEND_SEARCH_TERMS_BYTE_LIMIT)
     out: dict[str, Any] = {
         "title": title,
         "bullets": bullets,
         "description": description,
         "backend_search_terms": backend,
     }
+    if isinstance(payload.get("evidence"), dict):
+        out["evidence"] = payload["evidence"]
     if isinstance(payload.get("a_plus_markdown"), str):
         out["a_plus_markdown"] = payload["a_plus_markdown"]
     if isinstance(payload.get("a_plus"), (dict, list)):
@@ -109,6 +125,19 @@ def generate_listing_with_llm(
     last_listing = _normalize_listing_payload(base_listing)
     last_findings = scan_listing_fields(last_listing, config=config)
 
+    # Guard against hallucinated numerics: allow only numbers already in facts/base listing.
+    def numbers_in_text(s: str) -> set[str]:
+        import re
+
+        return set(re.findall(r"\b\d+(?:\.\d+)?\b", s))
+
+    def allowed_numbers() -> set[str]:
+        facts_blob = json.dumps(facts, ensure_ascii=False)
+        base_blob = json.dumps(base_listing, ensure_ascii=False)
+        return numbers_in_text(facts_blob) | numbers_in_text(base_blob)
+
+    allowed_nums = allowed_numbers()
+
     for _ in range(max_attempts):
         prompt = build_listing_rewrite_prompt(
             facts=facts,
@@ -128,6 +157,13 @@ def generate_listing_with_llm(
             break
 
         candidate = _normalize_listing_payload(parsed)
+        candidate_blob = json.dumps(candidate, ensure_ascii=False)
+        new_nums = numbers_in_text(candidate_blob) - allowed_nums
+        if new_nums:
+            # Treat new numeric claims as unsafe/hallucinated and retry.
+            last_listing = candidate
+            last_findings = last_findings
+            continue
         findings = scan_listing_fields(candidate, config=config)
         if any(f.severity == "hard" for f in findings):
             last_listing = candidate
@@ -150,4 +186,3 @@ def generate_listing_with_llm(
         compliance_findings=[f.to_dict() for f in fallback_findings],
         used_fallback=used_fallback,
     )
-

@@ -16,11 +16,16 @@ def build_listing_rewrite_prompt(
 
     Output MUST be JSON only (no markdown fences).
     """
+    product_name = str(facts.get("product_name") or "").strip()
+    allowed_grades = [t for t in ["Laboratory Grade", "Technical Grade", "Food Grade", "ACS Grade", "Reagent Grade", "Pharmaceutical Grade", "Industrial Grade", "USP Grade", "FCC Grade", "NF Grade"] if t.lower() in product_name.lower()]
+    allowed_grades_line = ", ".join(allowed_grades) if allowed_grades else "(none)"
+
     return "\n".join(
         [
             "You are writing Amazon listing copy for a chemical product.",
             "You MUST follow these rules:",
             *[f"- {r}" for r in hard_rules],
+            f"- Grade allowlist for this SKU (derived from facts.product_name): {allowed_grades_line}. If (none), do not output any grade wording or grade variants (e.g., lab-grade, reagent-grade, ACS, USP, food grade).",
             "",
             "Forbidden terms/phrases (do not output any of these, even indirectly):",
             *[f"- {t}" for t in forbidden_terms],
@@ -30,9 +35,10 @@ def build_listing_rewrite_prompt(
             "Maintain a professional, technical tone. No hype, no superlatives.",
             "",
             "Return JSON ONLY with these keys:",
-            '  "title" (<=200 chars), "bullets" (array of 1-5 strings, <=500 chars each),',
-            '  "description" (<=2000 chars), "backend_search_terms" (space-separated, <=250 UTF-8 bytes),',
-            '  "a_plus_markdown" (optional), "a_plus" (optional object).',
+            '  "title" (<=200 chars), "bullets" (array of 1-5 strings, <=250 chars each),',
+            '  "description" (<=2000 chars), "backend_keywords" (array of tokens / short phrases; 2-3 words max each),',
+            '  "a_plus_markdown" (optional), "a_plus" (optional object),',
+            '  "evidence" (object mapping each field to facts paths used).',
             "",
             "FACTS CARD JSON:",
             json.dumps(facts, ensure_ascii=False),
@@ -54,4 +60,3 @@ def build_listing_rewrite_prompt(
             "Return JSON only.",
         ]
     )
-
